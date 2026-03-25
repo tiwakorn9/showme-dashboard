@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ShowMe — Business Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f11;--bg2:#161619;--bg3:#1e1e23;--card:#1a1a1f;--border:#2a2a32;
+  --text:#e8e8f0;--muted:#7a7a8a;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;--purple:#a855f7;--teal:#14b8a6;
+}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px}
+
+/* UPLOAD */
+#upload-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px}
+.logo-big{font-size:32px;font-weight:600;margin-bottom:6px;letter-spacing:-1px}
+.logo-big span{color:var(--green)}
+.subtitle{color:var(--muted);font-size:14px;margin-bottom:40px;text-align:center}
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:760px;margin-bottom:28px}
+.upload-card{background:var(--card);border:1.5px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+.upload-card:hover{border-color:var(--green);background:var(--bg2)}
+.upload-card.has-file{border-style:solid;border-color:var(--green);background:rgba(34,197,94,.06)}
+.upload-card.required::after{content:'จำเป็น';position:absolute;top:8px;right:8px;font-size:9px;background:#451a03;color:var(--amber);padding:2px 6px;border-radius:3px}
+.uc-icon{font-size:24px;margin-bottom:8px}
+.uc-title{font-size:12px;font-weight:500;margin-bottom:3px}
+.uc-sub{font-size:10px;color:var(--muted)}
+.uc-filename{font-size:10px;color:var(--green);margin-top:6px;font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input[type=file]{display:none}
+.btn-analyze{background:var(--green);color:#000;border:none;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s;width:100%;max-width:760px}
+.btn-analyze:hover{background:#16a34a;transform:translateY(-1px)}
+.btn-analyze:disabled{background:var(--bg3);color:var(--muted);cursor:not-allowed;transform:none}
+.upload-note{font-size:11px;color:var(--muted);margin-top:14px;text-align:center}
+
+/* LOADING */
+#loading{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* HEADER */
+.header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:100}
+.logo{font-size:16px;font-weight:600}.logo span{color:var(--green)}
+.header-right{display:flex;gap:8px;align-items:center}
+.badge-info{font-size:11px;color:var(--muted);background:var(--bg3);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+.btn-sm{font-size:11px;color:var(--muted);background:var(--bg3);padding:5px 12px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s}
+.btn-sm:hover{color:var(--text);border-color:#4a4a58}
+.btn-sm.active{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:500}
+
+/* PAGE NAV */
+#dashboard-page{display:none}
+.page-nav{display:flex;gap:8px;padding:16px 24px;border-bottom:1px solid var(--border)}
+.page-btn{cursor:pointer;font-size:13px;font-weight:500;padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;font-family:'IBM Plex Sans Thai',sans-serif}
+.page-btn:hover{color:var(--text);border-color:#4a4a58}
+.page-btn.active{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
+
+.page{display:none;padding:20px 24px 40px}
+.page.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.kpi-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.kpi-v{font-size:26px;font-weight:600;letter-spacing:-1px;line-height:1}
+.kpi-s{font-size:11px;color:var(--muted);margin-top:5px}
+.kpi.success .kpi-v{color:var(--green)}
+.kpi.danger .kpi-v{color:var(--red)}
+.kpi.danger .kpi-l{color:var(--red);opacity:.7}
+.kpi.warn .kpi-v{color:var(--amber)}
+
+/* Charts */
+.chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px}
+.chart-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.chart-full{margin-bottom:16px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.chart-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.chart-wrap{position:relative;height:260px}
+.chart-wrap.tall{height:320px}
+.chart-wrap.short{height:200px}
+
+/* Table */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;color:var(--muted);text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);font-weight:500;text-transform:uppercase;letter-spacing:.6px;background:var(--bg2)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.rk{width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+.rk.g{background:#1a3a2a;color:var(--green)}.rk.s{background:#2a2a1a;color:var(--amber)}
+.rk.b{background:#2a1a1a;color:#f87171}.rk.n{background:var(--bg3);color:var(--muted)}
+.bdg{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.bdg.g{background:#14532d;color:#86efac}.bdg.r{background:#450a0a;color:#fca5a5}
+.bdg.a{background:#451a03;color:#fcd34d}.bdg.b{background:#1e3a5f;color:#93c5fd}
+.bdg.p{background:#3b0764;color:#d8b4fe}.bdg.gy{background:var(--bg3);color:var(--muted)}
+.bar-r{display:flex;align-items:center;gap:7px}
+.bar-t{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;min-width:40px}
+.bar-f{height:4px;border-radius:2px}
+.note{font-size:11px;color:var(--muted);margin-top:10px;padding:9px 12px;background:var(--bg2);border-radius:8px;border-left:3px solid var(--border);line-height:1.7}
+
+/* Tabs */
+.tabs-wrap{margin-bottom:14px}
+.tabs{display:flex;gap:5px;flex-wrap:wrap}
+.tab{cursor:pointer;font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;font-family:'IBM Plex Sans Thai',sans-serif;white-space:nowrap}
+.tab:hover{border-color:#4a4a58;color:var(--text)}
+.tab.active{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:500}
+.panel{display:none}.panel.active{display:block;animation:fi .2s ease}
+
+/* Insight cards */
+.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.insight-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.ic-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.ic-val{font-size:20px;font-weight:600;margin-bottom:4px}
+.ic-sub{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* Section title */
+.sec-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;margin-top:20px}
+.sec-title:first-child{margin-top:0}
+
+/* CONFIG */
+.color-row{display:flex;flex-direction:column;gap:6px}
+.color-row label{font-size:11px;color:var(--muted);font-weight:500}
+.color-input-wrap{display:flex;gap:8px;align-items:center}
+.color-input-wrap input[type=color]{width:44px;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;padding:2px}
+.color-input-wrap input[type=text]{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px}
+.color-input-wrap input[type=text]:focus{outline:none;border-color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- UPLOAD -->
+<div id="upload-page">
+  <div class="logo-big">Show<span>Me</span> Thailand</div>
+  <div class="subtitle">Business Intelligence Dashboard<br>วิเคราะห์ข้อมูลจาก BigSeller บนเครื่องของคุณ ไม่ต้อง internet</div>
+  <div class="upload-grid">
+    <div class="upload-card required" onclick="triggerUpload('profit')">
+      <input type="file" id="file-profit" accept=".xlsx,.xls" onchange="onFile(this,'profit')">
+      <div class="uc-icon">💰</div><div class="uc-title">กำไรของคำสั่งซื้อ</div>
+      <div class="uc-sub">กำไรของคำสั่งซื้อ-xxx.xlsx</div>
+      <div class="uc-filename" id="fn-profit">ยังไม่ได้เลือกไฟล์</div>
+    </div>
+    <div class="upload-card required" onclick="triggerUpload('sku')">
+      <input type="file" id="file-sku" accept=".xlsx,.xls" onchange="onFile(this,'sku')">
+      <div class="uc-icon">🏷️</div><div class="uc-title">รายงาน SKU Merchant</div>
+      <div class="uc-sub">รายงาน SKU Merchant-xxx.xlsx</div>
+      <div class="uc-filename" id="fn-sku">ยังไม่ได้เลือกไฟล์</div>
+    </div>
+    <div class="upload-card" onclick="triggerUpload('inv')">
+      <input type="file" id="file-inv" accept=".xlsx,.xls" onchange="onFile(this,'inv')">
+      <div class="uc-icon">📦</div><div class="uc-title">สินค้าคงคลัง</div>
+      <div class="uc-sub">รายงานสินค้าคงคลัง-xxx.xlsx</div>
+      <div class="uc-filename" id="fn-inv">ไม่บังคับ</div>
+    </div>
+    <div class="upload-card" onclick="triggerUpload('orders')">
+      <input type="file" id="file-orders" accept=".xlsx,.xls" onchange="onFile(this,'orders')">
+      <div class="uc-icon">🛒</div><div class="uc-title">รายงานคำสั่งซื้อ</div>
+      <div class="uc-sub">รายงานคำสั่งซื้อ-xxx.xlsx</div>
+      <div class="uc-filename" id="fn-orders">ไม่บังคับ</div>
+    </div>
+    <div class="upload-card" onclick="triggerUpload('store')">
+      <input type="file" id="file-store" accept=".xlsx,.xls" onchange="onFile(this,'store')">
+      <div class="uc-icon">🏪</div><div class="uc-title">รายงานร้านค้า</div>
+      <div class="uc-sub">รายงานร้านค้า-xxx.xlsx</div>
+      <div class="uc-filename" id="fn-store">ไม่บังคับ</div>
+    </div>
+    <div class="upload-card" onclick="triggerUpload('ads')">
+      <input type="file" id="file-ads" accept=".xlsx,.xls" onchange="onFile(this,'ads')">
+      <div class="uc-icon">🎯</div><div class="uc-title">ส่งออกโฆษณา Shopee</div>
+      <div class="uc-sub">ส่งออกโฆษณา Shopee-xxx.xlsx</div>
+      <div class="uc-filename" id="fn-ads">ไม่บังคับ</div>
+    </div>
+  </div>
+  <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>กรุณาเลือกไฟล์จำเป็นก่อน</button>
+  <div class="upload-note">ต้องมีอย่างน้อย 2 ไฟล์แรก · ข้อมูลทั้งหมดประมวลผลบนเครื่องของคุณ ไม่มีการส่งข้อมูลออกไปไหน</div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="color:var(--muted)">กำลังวิเคราะห์ข้อมูล...</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard-page">
+  <div class="header">
+    <div class="logo">Show<span>Me</span> Thailand <span style="color:var(--muted);font-weight:300;font-size:12px;margin-left:6px">Business Dashboard</span></div>
+    <div class="header-right">
+      <div class="badge-info" id="badge-date"></div>
+      <button class="btn-sm" onclick="resetApp()">⟵ Upload ไฟล์ใหม่</button>
+    </div>
+  </div>
+
+  <div class="page-nav">
+    <button class="page-btn active" onclick="showPage('exec',this)">📊 Executive Summary</button>
+    <button class="page-btn" onclick="showPage('detail',this)">📋 รายละเอียด</button>
+    <button class="page-btn" onclick="showPage('config',this)" style="margin-left:auto">🎨 ตั้งค่าสี</button>
+  </div>
+
+  <!-- EXECUTIVE PAGE -->
+  <div id="exec" class="page active">
+    <div class="kpis" id="exec-kpis"></div>
+
+    <!-- Charts Row 1: Line charts -->
+    <div class="sec-title">แนวโน้มรายวัน</div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">📦 ยอดขายรายวัน (ชิ้น)</div>
+        <div class="chart-wrap"><canvas id="chartQty"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">💰 กำไรรายวัน (฿)</div>
+        <div class="chart-wrap"><canvas id="chartProfit"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-full">
+      <div class="chart-card">
+        <div class="chart-title">📈 Margin % รายวัน</div>
+        <div class="chart-wrap short"><canvas id="chartMargin"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2: Bar + Pie -->
+    <div class="sec-title">วิเคราะห์ SKU และช่องทาง</div>
+    <div class="chart-grid-3">
+      <div class="chart-card" style="grid-column:span 2">
+        <div class="chart-title">🔥 Top 10 SKU ยอดขายสูงสุด</div>
+        <div class="chart-wrap"><canvas id="chartTop10Sales"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📡 สัดส่วนช่องทางขาย</div>
+        <div class="chart-wrap"><canvas id="chartChannel"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-full">
+      <div class="chart-card">
+        <div class="chart-title">💰 Top 10 SKU กำไรสูงสุด</div>
+        <div class="chart-wrap"><canvas id="chartTop10Profit"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="sec-title">สิ่งที่ต้องดำเนินการ</div>
+    <div id="exec-insights"></div>
+  </div>
+
+  <!-- DETAIL PAGE -->
+  <!-- CONFIG PAGE -->
+  <div id="config" class="page">
+    <div style="max-width:700px;margin:0 auto">
+      <div style="margin-bottom:24px">
+        <div style="font-size:20px;font-weight:600;margin-bottom:6px">🎨 ตั้งค่าสีและธีม</div>
+        <div style="font-size:12px;color:var(--muted)">เปลี่ยนสีได้เลย กด "บันทึก" แล้ว Dashboard จะอัปเดตทันที</div>
+      </div>
+
+      <!-- Theme Presets -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">🎭 ธีมสำเร็จรูป</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+          <button class="preset-btn" onclick="applyPreset('dark')" style="background:#0f0f11;border:2px solid var(--green);border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center">
+            <div style="width:100%;height:20px;background:linear-gradient(135deg,#22c55e,#3b82f6);border-radius:4px;margin-bottom:6px"></div>
+            <div style="font-size:11px;color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif">🌑 Dark (เดิม)</div>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('light')" style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center">
+            <div style="width:100%;height:20px;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:4px;margin-bottom:6px"></div>
+            <div style="font-size:11px;color:#1e293b;font-family:'IBM Plex Sans Thai',sans-serif">☀️ Light</div>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('ocean')" style="background:#0c1a2e;border:2px solid #0ea5e9;border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center">
+            <div style="width:100%;height:20px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border-radius:4px;margin-bottom:6px"></div>
+            <div style="font-size:11px;color:#e0f2fe;font-family:'IBM Plex Sans Thai',sans-serif">🌊 Ocean</div>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('forest')" style="background:#0a1f0a;border:2px solid #16a34a;border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center">
+            <div style="width:100%;height:20px;background:linear-gradient(135deg,#16a34a,#65a30d);border-radius:4px;margin-bottom:6px"></div>
+            <div style="font-size:11px;color:#dcfce7;font-family:'IBM Plex Sans Thai',sans-serif">🌿 Forest</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Colors -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px">🖌️ กำหนดสีเอง</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+          <div class="color-row">
+            <label>พื้นหลังหลัก</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-bg" value="#0f0f11" oninput="previewColor('--bg',this.value);document.getElementById('t-bg').value=this.value">
+              <input type="text" id="t-bg" value="#0f0f11" oninput="syncColor('c-bg','--bg',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>พื้นหลัง Card</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-card" value="#1a1a1f" oninput="previewColor('--card',this.value);document.getElementById('t-card').value=this.value">
+              <input type="text" id="t-card" value="#1a1a1f" oninput="syncColor('c-card','--card',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>สีหลัก (Accent)</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-green" value="#22c55e" oninput="previewColor('--green',this.value);document.getElementById('t-green').value=this.value">
+              <input type="text" id="t-green" value="#22c55e" oninput="syncColor('c-green','--green',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>สีข้อความ</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-text" value="#e8e8f0" oninput="previewColor('--text',this.value);document.getElementById('t-text').value=this.value">
+              <input type="text" id="t-text" value="#e8e8f0" oninput="syncColor('c-text','--text',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>สีกราฟ — TikTok</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-red" value="#ef4444" oninput="previewColor('--red',this.value);document.getElementById('t-red').value=this.value">
+              <input type="text" id="t-red" value="#ef4444" oninput="syncColor('c-red','--red',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>สีกราฟ — Shopee</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-blue" value="#3b82f6" oninput="previewColor('--blue',this.value);document.getElementById('t-blue').value=this.value">
+              <input type="text" id="t-blue" value="#3b82f6" oninput="syncColor('c-blue','--blue',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>สีเตือน (Warning)</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-amber" value="#f59e0b" oninput="previewColor('--amber',this.value);document.getElementById('t-amber').value=this.value">
+              <input type="text" id="t-amber" value="#f59e0b" oninput="syncColor('c-amber','--amber',this.value)" maxlength="7">
+            </div>
+          </div>
+
+          <div class="color-row">
+            <label>สีอันตราย (Danger)</label>
+            <div class="color-input-wrap">
+              <input type="color" id="c-danger" value="#ef4444" oninput="previewColor('--red',this.value);document.getElementById('t-danger').value=this.value">
+              <input type="text" id="t-danger" value="#ef4444" oninput="syncColor('c-danger','--red',this.value)" maxlength="7">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Pie Chart Colors -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px">🍩 สีกราฟวงกลม (ช่องทางขาย)</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+          <div class="color-row" style="text-align:center">
+            <label>TikTok</label>
+            <input type="color" id="pie-0" value="#ef4444" oninput="updatePieColors()">
+          </div>
+          <div class="color-row" style="text-align:center">
+            <label>Shopee</label>
+            <input type="color" id="pie-1" value="#3b82f6" oninput="updatePieColors()">
+          </div>
+          <div class="color-row" style="text-align:center">
+            <label>Manual</label>
+            <input type="color" id="pie-2" value="#f59e0b" oninput="updatePieColors()">
+          </div>
+          <div class="color-row" style="text-align:center">
+            <label>อื่นๆ 1</label>
+            <input type="color" id="pie-3" value="#22c55e" oninput="updatePieColors()">
+          </div>
+          <div class="color-row" style="text-align:center">
+            <label>อื่นๆ 2</label>
+            <input type="color" id="pie-4" value="#a855f7" oninput="updatePieColors()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;gap:10px">
+        <button onclick="saveColors()" style="flex:1;background:var(--green);color:#000;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif">
+          💾 บันทึกและใช้งาน
+        </button>
+        <button onclick="resetColors()" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:12px 20px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif">
+          ↺ รีเซ็ต
+        </button>
+      </div>
+      <div id="save-msg" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:var(--green)">✅ บันทึกสำเร็จ! กลับไปดู Dashboard ได้เลยครับ</div>
+    </div>
+  </div>
+
+  <div id="detail" class="page">
+    <div class="tabs-wrap">
+      <div class="tabs">
+        <button class="tab active" onclick="sw('p1',this)">🔥 Top10 ขายดี</button>
+        <button class="tab" onclick="sw('p2',this)">💰 กำไรสูงสุด</button>
+        <button class="tab" onclick="sw('p3',this)">📉 กำไรต่ำ-ขายดี</button>
+        <button class="tab" onclick="sw('p4',this)">🚀 ควรยิง Ads</button>
+        <button class="tab" onclick="sw('p5',this)">❌ ควรหยุดขาย</button>
+        <button class="tab" onclick="sw('p6',this)">📦 ควรสต็อกเพิ่ม</button>
+        <button class="tab" onclick="sw('p7',this)">📡 ช่องทางขาย</button>
+        <button class="tab" onclick="sw('p8',this)">🎯 โปรโมชั่น</button>
+      </div>
+    </div>
+    <div id="p1" class="panel active"></div>
+    <div id="p2" class="panel"></div>
+    <div id="p3" class="panel"></div>
+    <div id="p4" class="panel"></div>
+    <div id="p5" class="panel"></div>
+    <div id="p6" class="panel"></div>
+    <div id="p7" class="panel"></div>
+    <div id="p8" class="panel"></div>
+  </div>
+</div>
+
+<script>
+const filesReady = {};
+let charts = {};
+
+function triggerUpload(k){document.getElementById('file-'+k).click()}
+function onFile(input,k){
+  if(!input.files[0])return;
+  filesReady[k]=input.files[0];
+  document.getElementById('fn-'+k).textContent=input.files[0].name;
+  input.closest('.upload-card').classList.add('has-file');
+  const ok=filesReady['profit']&&filesReady['sku'];
+  const btn=document.getElementById('btn-analyze');
+  btn.disabled=!ok;
+  btn.textContent=ok?'🔍 วิเคราะห์ข้อมูลเลย':'กรุณาเลือกไฟล์จำเป็นก่อน';
+}
+async function runAnalysis(){
+  document.getElementById('upload-page').style.display='none';
+  document.getElementById('loading').style.display='flex';
+  const fd=new FormData();
+  for(const[k,f]of Object.entries(filesReady))fd.append(k,f);
+  try{
+    const res=await fetch('/analyze',{method:'POST',body:fd});
+    const json=await res.json();
+    if(json.success){buildDashboard(json.data)}
+    else{alert('เกิดข้อผิดพลาด: '+json.error);resetApp()}
+  }catch(e){alert('ไม่สามารถเชื่อมต่อ server: '+e.message);resetApp()}
+}
+function resetApp(){
+  document.getElementById('dashboard-page').style.display='none';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('upload-page').style.display='flex';
+  Object.values(charts).forEach(c=>c.destroy());charts={};
+}
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.page-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+function sw(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+function fmt(n){return Number(n).toLocaleString('th-TH',{maximumFractionDigits:0})}
+function fmtD(n,d=1){return Number(n).toFixed(d)}
+function rankClass(i){return i<3?'g':i<6?'s':i<9?'b':'n'}
+
+const CHART_DEFAULTS = {
+  color:'#e8e8f0',
+  grid:'#2a2a32',
+  font:'IBM Plex Sans Thai'
+};
+
+function makeLineChart(id, labels, datasets){
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:datasets.map(d=>({
+      ...d,
+      borderWidth:2,
+      pointRadius:3,
+      pointHoverRadius:5,
+      tension:0.3,
+      fill:d.fill||false
+    }))},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:CHART_DEFAULTS.color,font:{family:CHART_DEFAULTS.font,size:11}}},tooltip:{mode:'index',intersect:false}},
+      scales:{
+        x:{ticks:{color:CHART_DEFAULTS.color,font:{size:10},maxRotation:45},grid:{color:CHART_DEFAULTS.grid}},
+        y:{ticks:{color:CHART_DEFAULTS.color,font:{size:10}},grid:{color:CHART_DEFAULTS.grid}}
+      }
+    }
+  });
+}
+
+function makeBarChart(id, labels, datasets, horizontal=false){
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets},
+    options:{
+      indexAxis:horizontal?'y':'x',
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:CHART_DEFAULTS.color,font:{family:CHART_DEFAULTS.font,size:11}}}},
+      scales:{
+        x:{ticks:{color:CHART_DEFAULTS.color,font:{size:10}},grid:{color:CHART_DEFAULTS.grid}},
+        y:{ticks:{color:CHART_DEFAULTS.color,font:{size:10}},grid:{color:CHART_DEFAULTS.grid}}
+      }
+    }
+  });
+}
+
+function makePieChart(id, labels, data, colors){
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'#0f0f11',borderWidth:2}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:CHART_DEFAULTS.color,font:{family:CHART_DEFAULTS.font,size:11},padding:12}}}
+    }
+  });
+}
+
+function buildDashboard(d){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dashboard-page').style.display='block';
+  const now=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('badge-date').textContent=now+' · คำนวณจากข้อมูลจริง';
+  const s=d.summary||{};
+
+  // ===== EXECUTIVE KPIs =====
+  const avgPerDay = d.daily&&d.daily.length ? Math.round(s.total_profit/d.daily.length) : 0;
+  const avgQtyPerDay = d.daily&&d.daily.length ? Math.round(s.total_qty/d.daily.length) : 0;
+  document.getElementById('exec-kpis').innerHTML=`
+    <div class="kpi success"><div class="kpi-l">กำไรสุทธิรวม</div><div class="kpi-v">฿${fmt(s.total_profit)}</div><div class="kpi-s">จาก ${fmt(s.total_orders)} ออเดอร์</div></div>
+    <div class="kpi"><div class="kpi-l">ยอดขาย (ชิ้น)</div><div class="kpi-v">${fmt(s.total_qty)}</div><div class="kpi-s">เฉลี่ย ${fmt(avgQtyPerDay)} ชิ้น/วัน</div></div>
+    <div class="kpi"><div class="kpi-l">Margin เฉลี่ย</div><div class="kpi-v">${fmtD(s.avg_margin)}%</div><div class="kpi-s">กำไร ฿${fmt(Math.round(s.total_profit/s.total_orders))}/ออเดอร์</div></div>
+    <div class="kpi danger"><div class="kpi-l">⚡ สต็อกวิกฤต</div><div class="kpi-v">${s.stock_critical||0} SKU</div><div class="kpi-s">เหลือน้อยกว่า 7 วัน</div></div>
+  `;
+
+  // ===== LINE CHARTS =====
+  if(d.daily&&d.daily.length){
+    const labels=d.daily.map(r=>{
+      const dt=new Date(r.date_str);
+      return `${dt.getDate()}/${dt.getMonth()+1}`;
+    });
+    makeLineChart('chartQty',labels,[{label:'ยอดขาย (ชิ้น)',data:d.daily.map(r=>r.qty),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true}]);
+    makeLineChart('chartProfit',labels,[{label:'กำไร (฿)',data:d.daily.map(r=>r.profit),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true}]);
+    makeLineChart('chartMargin',labels,[{label:'Margin %',data:d.daily.map(r=>r.margin),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.1)',fill:true}]);
+  }
+
+  // ===== BAR CHARTS =====
+  if(d.top10_sales&&d.top10_sales.length){
+    const t=d.top10_sales;
+    makeBarChart('chartTop10Sales',t.map(r=>r.sku),[
+      {label:'ยอดขาย (ชิ้น)',data:t.map(r=>r.qty),backgroundColor:'rgba(34,197,94,.7)',borderColor:'#22c55e',borderWidth:1},
+      {label:'กำไรรวม (฿)',data:t.map(r=>r.profit),backgroundColor:'rgba(59,130,246,.7)',borderColor:'#3b82f6',borderWidth:1,yAxisID:'y1'}
+    ].slice(0,1));
+    // Simple single dataset
+    if(charts['chartTop10Sales'])charts['chartTop10Sales'].destroy();
+    charts['chartTop10Sales']=new Chart(document.getElementById('chartTop10Sales'),{
+      type:'bar',
+      data:{labels:t.map(r=>r.sku),datasets:[
+        {label:'ยอดขาย (ชิ้น)',data:t.map(r=>r.qty),backgroundColor:t.map((_,i)=>`hsla(${140-i*8},60%,50%,.75)`),borderRadius:4}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:CHART_DEFAULTS.color,font:{size:11}}}},scales:{x:{ticks:{color:CHART_DEFAULTS.color,font:{size:10},maxRotation:30},grid:{color:CHART_DEFAULTS.grid}},y:{ticks:{color:CHART_DEFAULTS.color,font:{size:10}},grid:{color:CHART_DEFAULTS.grid}}}}
+    });
+  }
+
+  if(d.top10_profit&&d.top10_profit.length){
+    const t=d.top10_profit;
+    if(charts['chartTop10Profit'])charts['chartTop10Profit'].destroy();
+    charts['chartTop10Profit']=new Chart(document.getElementById('chartTop10Profit'),{
+      type:'bar',
+      data:{labels:t.map(r=>r.sku),datasets:[
+        {label:'กำไรรวม (฿)',data:t.map(r=>r.profit),backgroundColor:t.map((_,i)=>`hsla(${220-i*8},70%,60%,.75)`),borderRadius:4}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:CHART_DEFAULTS.color,font:{size:11}}}},scales:{x:{ticks:{color:CHART_DEFAULTS.color,font:{size:10},maxRotation:30},grid:{color:CHART_DEFAULTS.grid}},y:{ticks:{color:CHART_DEFAULTS.color,font:{size:10}},grid:{color:CHART_DEFAULTS.grid}}}}
+    });
+  }
+
+  // ===== PIE CHART =====
+  if(d.channels&&d.channels.length){
+    const chs=d.channels.slice(0,5);
+    makePieChart('chartChannel',
+      chs.map(c=>c.shop.replace(' (หลัก)','').replace(' (รอง)','')),
+      chs.map(c=>c.qty),
+      ['#ef4444','#3b82f6','#f59e0b','#22c55e','#a855f7']
+    );
+  }
+
+  // ===== INSIGHTS =====
+  const restock=(d.restock||[]).filter(r=>r.days_stock<7);
+  const stop=(d.stop||[]).slice(0,3);
+  const ads=(d.ads||[]).slice(0,3);
+  document.getElementById('exec-insights').innerHTML=`
+    <div class="insight-grid">
+      <div class="insight-card" style="border-color:#7f1d1d">
+        <div class="ic-label" style="color:var(--red)">🚨 สต็อกวิกฤต — ต้องสั่งวันนี้</div>
+        ${restock.length?restock.slice(0,3).map(r=>`<div style="font-size:12px;margin-bottom:4px"><span class="mono">${r.sku}</span> <span style="color:var(--red)">เหลือ ${r.days_stock} วัน</span> · ขาย ${r.daily_sales}/วัน</div>`).join(''):
+        '<div style="font-size:12px;color:var(--muted)">✅ สต็อกทุก SKU ปกติดี</div>'}
+      </div>
+      <div class="insight-card" style="border-color:#451a03">
+        <div class="ic-label" style="color:var(--amber)">❌ สต็อกค้าง — ควรระบาย</div>
+        ${stop.length?stop.map(r=>`<div style="font-size:12px;margin-bottom:4px"><span class="mono">${r.sku}</span> <span style="color:var(--amber)">สต็อก ${fmt(r.stock)} ชิ้น</span></div>`).join(''):
+        '<div style="font-size:12px;color:var(--muted)">ไม่มีสต็อกค้างผิดปกติ</div>'}
+      </div>
+      <div class="insight-card" style="border-color:#1e3a5f">
+        <div class="ic-label" style="color:var(--blue)">🚀 แนะนำยิง Ads</div>
+        ${ads.length?ads.map(r=>`<div style="font-size:12px;margin-bottom:4px"><span class="mono">${r.sku}</span> · Max CPA <span style="color:var(--blue)">฿${r.max_cpa}</span></div>`).join(''):
+        '<div style="font-size:12px;color:var(--muted)">ต้องการไฟล์ SKU เพิ่มเติม</div>'}
+      </div>
+    </div>
+  `;
+
+  // ===== DETAIL TABS =====
+  buildDetailTabs(d);
+}
+
+function buildDetailTabs(d){
+  const top10=d.top10_sales||[];
+  const maxQ=Math.max(...top10.map(r=>r.qty),1);
+  document.getElementById('p1').innerHTML=`
+    <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>SKU</th><th>ยอดขาย</th><th>กำไรรวม</th><th>Margin</th><th>กำไร/ชิ้น</th><th>สต็อก</th><th>วัน</th></tr>
+    ${top10.map((r,i)=>{
+      const pu=r.profit_per_unit||0;
+      const puB=pu<25?`<span class="bdg r">฿${Math.round(pu)} ต่ำ</span>`:pu>50?`<span class="bdg b">฿${Math.round(pu)} ดี</span>`:`<span class="bdg g">฿${Math.round(pu)}</span>`;
+      const daysS=(r.days_stock||0)<7?'style="color:var(--red);font-weight:500"':'';
+      const stkS=(r.stock||0)<50?'style="color:var(--red);font-weight:500"':'';
+      return `<tr><td><span class="rk ${rankClass(i)}">${i+1}</span></td><td class="mono">${r.sku}</td>
+        <td><div class="bar-r"><div class="bar-t"><div class="bar-f" style="width:${Math.round(r.qty/maxQ*100)}%;background:${(r.days_stock||99)<7?'var(--red)':'var(--green)'}"></div></div>${fmt(r.qty)}</div></td>
+        <td>฿${fmt(r.profit)}</td><td>${fmtD(r.margin_pct)}%</td><td>${puB}</td>
+        <td ${stkS}>${fmt(r.stock||0)}</td><td ${daysS}>${Math.round(r.days_stock||0)}</td></tr>`;
+    }).join('')}
+    </table></div>
+    <div class="note">กำไร/ชิ้น &lt; ฿25 = ต่ำมาก ควรขึ้นราคา · สีแดง = สต็อกวิกฤตต้องสั่งด่วน</div>`;
+
+  const tp=d.top10_profit||[];
+  document.getElementById('p2').innerHTML=`
+    <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>SKU</th><th>กำไรรวม</th><th>ยอดขาย</th><th>กำไร/ชิ้น</th><th>Margin</th></tr>
+    ${tp.map((r,i)=>{const pu=r.profit_per_unit||0;const puB=pu>60?`<span class="bdg p">฿${Math.round(pu)}</span>`:pu>40?`<span class="bdg b">฿${Math.round(pu)}</span>`:`<span class="bdg g">฿${Math.round(pu)}</span>`;
+    return `<tr><td><span class="rk ${rankClass(i)}">${i+1}</span></td><td class="mono">${r.sku}</td><td style="font-weight:${i===0?'600':'400'}">฿${fmt(r.profit)}</td><td>${fmt(r.qty)}</td><td>${puB}</td><td>${fmtD(r.margin_pct)}%</td></tr>`;}).join('')}
+    </table></div>`;
+
+  const lm=d.low_margin||[];
+  document.getElementById('p3').innerHTML=lm.length===0?`<div style="text-align:center;padding:32px;color:var(--muted)">🎉 ไม่มี SKU ที่ margin ต่ำผิดปกติ</div>`:`
+    <div class="tbl-wrap"><table>
+    <tr><th>SKU</th><th>ยอดขาย</th><th>Margin</th><th>กำไร/ชิ้น</th><th>คำแนะนำ</th></tr>
+    ${lm.map(r=>`<tr><td class="mono">${r.sku}</td><td>${fmt(r.qty)}</td><td><span class="bdg a">${fmtD(r.margin_pct)}%</span></td><td>฿${Math.round(r.profit_per_unit)}</td><td><span class="bdg a">ขึ้นราคา 10-15%</span></td></tr>`).join('')}
+    </table></div>
+    <div class="note">SKU เหล่านี้ขายดีแต่กำไรต่ำ ลองขึ้นราคา 10% ทีละ SKU แล้วดู conversion ครับ</div>`;
+
+  const ads=d.ads||[];
+  document.getElementById('p4').innerHTML=ads.length===0?`<div style="text-align:center;padding:32px;color:var(--muted)">ต้องการไฟล์ SKU Report</div>`:`
+    <div class="tbl-wrap"><table>
+    <tr><th>SKU</th><th>ยอดขาย</th><th>Margin</th><th>Max CPA</th><th>สต็อก</th><th>วัน</th></tr>
+    ${ads.map(r=>`<tr><td class="mono">${r.sku}</td><td>${fmt(r.qty)}</td><td>${fmtD(r.margin_pct)}%</td><td><span class="bdg ${r.max_cpa>25?'b':'g'}">฿${Math.round(r.max_cpa)}</span></td><td>${fmt(r.stock)}</td><td>${Math.round(r.days_stock)}</td></tr>`).join('')}
+    </table></div>
+    <div class="note">Max CPA = ค่าโฆษณาสูงสุด/ออเดอร์ที่ยังไม่ขาดทุน</div>`;
+
+  const stop=d.stop||[];
+  document.getElementById('p5').innerHTML=stop.length===0?`<div style="text-align:center;padding:32px;color:var(--muted)">ไม่มี SKU ที่ควรหยุดขาย</div>`:`
+    <div class="tbl-wrap"><table>
+    <tr><th>SKU</th><th>ยอดขาย</th><th>Margin</th><th>สต็อกค้าง</th><th>เหลือ (วัน)</th><th>คำแนะนำ</th></tr>
+    ${stop.map(r=>{const act=r.margin_pct>35?`<span class="bdg b">ลองยิง Ads</span>`:r.margin_pct<15?`<span class="bdg r">หยุด+ระบาย</span>`:`<span class="bdg a">Flash Sale</span>`;
+    return `<tr><td class="mono">${r.sku}</td><td>${fmt(r.qty)}</td><td><span class="bdg ${r.margin_pct<15?'r':'a'}">${fmtD(r.margin_pct)}%</span></td><td style="color:var(--red);font-weight:500">${fmt(r.stock)}</td><td>${fmt(r.days_stock)}</td><td>${act}</td></tr>`;}).join('')}
+    </table></div>`;
+
+  const rs=d.restock||[];
+  document.getElementById('p6').innerHTML=rs.length===0?`<div style="text-align:center;padding:32px;color:var(--muted)">สต็อกทุก SKU ปกติดี ✅</div>`:`
+    <div class="tbl-wrap"><table>
+    <tr><th>SKU</th><th>ยอดขาย</th><th>สต็อก</th><th>เหลือ (วัน)</th><th>ขาย/วัน</th><th>ความเร่งด่วน</th></tr>
+    ${rs.map(r=>{const d=r.days_stock||0;const urg=d===0?`<span class="bdg r">🚨 ด่วนมาก</span>`:d<7?`<span class="bdg r">🚨 ด่วนมาก</span>`:d<20?`<span class="bdg a">⚡ เร่งด่วน</span>`:`<span class="bdg b">📋 วางแผน</span>`;
+    const dS=d<7?'style="color:var(--red);font-weight:500"':d<20?'style="color:var(--amber)"':'';
+    return `<tr><td class="mono">${r.sku}</td><td>${fmt(r.qty)}</td><td ${(r.stock||0)<50?'style="color:var(--red);font-weight:500"':''}>${fmt(r.stock)}</td><td ${dS}>${Math.round(d)}</td><td>${fmtD(r.daily_sales)}</td><td>${urg}</td></tr>`;}).join('')}
+    </table></div>
+    <div class="note">🚨 = สั่งซื้อวันนี้เลย · ⚡ = สั่งภายในสัปดาห์นี้</div>`;
+
+  const chs=d.channels||[];
+  document.getElementById('p7').innerHTML=chs.length===0?`<div style="text-align:center;padding:32px;color:var(--muted)">ต้องการไฟล์กำไรของคำสั่งซื้อ</div>`:`
+    <div class="tbl-wrap"><table>
+    <tr><th>ช่องทาง</th><th>ออเดอร์</th><th>ชิ้น</th><th>กำไรรวม</th><th>กำไร/ออเดอร์</th><th>%</th></tr>
+    ${chs.map(c=>{const ppo=c.profit_per_order||0;const ppB=ppo>100?`<span class="bdg p">฿${fmt(ppo)}</span>`:ppo>60?`<span class="bdg g">฿${fmt(ppo)}</span>`:`฿${fmt(ppo)}`;
+    return `<tr><td>${c.shop}</td><td>${fmt(c.orders)}</td><td>${fmt(c.qty||0)}</td><td>฿${fmt(c.profit||0)}</td><td>${ppB}</td><td>${fmtD(c.pct||0)}%</td></tr>`;}).join('')}
+    </table></div>
+    <div class="note">Manual Orders = Reseller กำไร/ออเดอร์สูงสุด ควรพัฒนาระบบ Wholesale</div>`;
+
+  document.getElementById('p8').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:var(--card);border:1px solid #166534;border-radius:12px;padding:16px">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--green);margin-bottom:8px">Flash Sale</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px">ระบายสต็อกค้าง</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">SKU ขายน้อยกว่า 3 ชิ้น สต็อกเกิน 500 ลด 30-40% TikTok Live</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--teal)">ระบายสต็อก ลดค่าโกดัง</span>
+      </div>
+      <div style="background:var(--card);border:1px solid #1e3a5f;border-radius:12px;padding:16px">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--blue);margin-bottom:8px">Bundle</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px">ซื้อ 2 SKU ลด 15%</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">SHM002 + SHM001 ซื้อคู่ลด 15% เพิ่ม AOV ยังคุ้มกำไร</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--teal)">เพิ่ม AOV 40-50%</span>
+      </div>
+      <div style="background:var(--card);border:1px solid #451a03;border-radius:12px;padding:16px">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--amber);margin-bottom:8px">ขึ้นราคา</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px">SKU Margin ต่ำกว่า 25%</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">ทดสอบขึ้นราคา 10% ทีละ SKU ดู conversion ก่อนขยายผล</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--teal)">เพิ่ม Margin ~5-8%</span>
+      </div>
+      <div style="background:var(--card);border:1px solid #3b0764;border-radius:12px;padding:16px">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--purple);margin-bottom:8px">VIP Program</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px">ระบบ Reseller / Wholesale</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Manual Orders กำไร/ออเดอร์สูงสุด สร้าง Line OA + ราคา Wholesale</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--teal)">ขยายช่องทาง B2B</span>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// CONFIG — จัดการสีและธีม
+// ============================================================
+
+const PRESETS = {
+  dark:   {'--bg':'#0f0f11','--bg2':'#161619','--bg3':'#1e1e23','--card':'#1a1a1f','--border':'#2a2a32','--text':'#e8e8f0','--muted':'#7a7a8a','--green':'#22c55e','--red':'#ef4444','--amber':'#f59e0b','--blue':'#3b82f6','--purple':'#a855f7','--teal':'#14b8a6',pie:['#ef4444','#3b82f6','#f59e0b','#22c55e','#a855f7']},
+  light:  {'--bg':'#f8fafc','--bg2':'#f1f5f9','--bg3':'#e2e8f0','--card':'#ffffff','--border':'#cbd5e1','--text':'#1e293b','--muted':'#64748b','--green':'#2563eb','--red':'#dc2626','--amber':'#d97706','--blue':'#7c3aed','--purple':'#9333ea','--teal':'#0891b2',pie:['#dc2626','#7c3aed','#d97706','#2563eb','#9333ea']},
+  ocean:  {'--bg':'#0c1a2e','--bg2':'#112240','--bg3':'#1d3557','--card':'#162032','--border':'#1e3a5f','--text':'#e0f2fe','--muted':'#7dd3fc','--green':'#0ea5e9','--red':'#f43f5e','--amber':'#fbbf24','--blue':'#06b6d4','--purple':'#818cf8','--teal':'#2dd4bf',pie:['#f43f5e','#0ea5e9','#fbbf24','#06b6d4','#818cf8']},
+  forest: {'--bg':'#0a1f0a','--bg2':'#122012','--bg3':'#1a3a1a','--card':'#142814','--border':'#1e4a1e','--text':'#dcfce7','--muted':'#86efac','--green':'#16a34a','--red':'#ef4444','--amber':'#ca8a04','--blue':'#3b82f6','--purple':'#a855f7','--teal':'#0d9488',pie:['#ef4444','#3b82f6','#ca8a04','#16a34a','#a855f7']}
+};
+
+let currentColors = JSON.parse(localStorage.getItem('showme_colors')||'null') || PRESETS.dark;
+
+function loadSavedColors(){
+  applyColorsToDOM(currentColors);
+  const map={'c-bg':'--bg','c-card':'--card','c-green':'--green','c-text':'--text','c-red':'--red','c-blue':'--blue','c-amber':'--amber','c-danger':'--red'};
+  for(const[id,v] of Object.entries(map)){
+    const el=document.getElementById(id);
+    const tel=document.getElementById('t-'+id.replace('c-',''));
+    if(el&&currentColors[v])el.value=currentColors[v];
+    if(tel&&currentColors[v])tel.value=currentColors[v];
+  }
+  if(currentColors.pie){
+    currentColors.pie.forEach((c,i)=>{const el=document.getElementById('pie-'+i);if(el)el.value=c;});
+  }
+}
+
+function applyColorsToDOM(colors){
+  const root=document.documentElement;
+  for(const[k,v] of Object.entries(colors)){if(k.startsWith('--'))root.style.setProperty(k,v);}
+}
+
+function previewColor(variable,value){document.documentElement.style.setProperty(variable,value);}
+
+function syncColor(pickerId,variable,value){
+  if(/^#[0-9a-fA-F]{6}$/.test(value)){
+    document.getElementById(pickerId).value=value;
+    document.documentElement.style.setProperty(variable,value);
+  }
+}
+
+function updatePieColors(){
+  if(!charts['chartChannel'])return;
+  const colors=[0,1,2,3,4].map(i=>document.getElementById('pie-'+i).value);
+  charts['chartChannel'].data.datasets[0].backgroundColor=colors;
+  charts['chartChannel'].update();
+}
+
+function applyPreset(name){
+  const p=PRESETS[name];if(!p)return;
+  applyColorsToDOM(p);
+  const map={'c-bg':'--bg','c-card':'--card','c-green':'--green','c-text':'--text','c-red':'--red','c-blue':'--blue','c-amber':'--amber','c-danger':'--red'};
+  for(const[id,v] of Object.entries(map)){
+    const el=document.getElementById(id);const tel=document.getElementById('t-'+id.replace('c-',''));
+    if(el&&p[v])el.value=p[v];if(tel&&p[v])tel.value=p[v];
+  }
+  if(p.pie){p.pie.forEach((c,i)=>{const el=document.getElementById('pie-'+i);if(el)el.value=c;});updatePieColors();}
+}
+
+function adjustColor(hex,amount){
+  try{
+    const r=Math.max(0,Math.min(255,parseInt(hex.slice(1,3),16)+amount));
+    const g=Math.max(0,Math.min(255,parseInt(hex.slice(3,5),16)+amount));
+    const b=Math.max(0,Math.min(255,parseInt(hex.slice(5,7),16)+amount));
+    return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }catch(e){return hex;}
+}
+
+function saveColors(){
+  const bg=document.getElementById('c-bg').value;
+  const card=document.getElementById('c-card').value;
+  const text=document.getElementById('c-text').value;
+  const colors={
+    '--bg':bg,'--bg2':adjustColor(bg,10),'--bg3':adjustColor(bg,20),
+    '--card':card,'--border':adjustColor(card,15),
+    '--text':text,'--muted':adjustColor(text,-60),
+    '--green':document.getElementById('c-green').value,
+    '--red':document.getElementById('c-red').value,
+    '--amber':document.getElementById('c-amber').value,
+    '--blue':document.getElementById('c-blue').value,
+    '--purple':'#a855f7','--teal':'#14b8a6',
+    pie:[0,1,2,3,4].map(i=>document.getElementById('pie-'+i).value)
+  };
+  localStorage.setItem('showme_colors',JSON.stringify(colors));
+  currentColors=colors;
+  applyColorsToDOM(colors);
+  updatePieColors();
+  const msg=document.getElementById('save-msg');
+  msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',3000);
+}
+
+function resetColors(){
+  localStorage.removeItem('showme_colors');
+  currentColors=PRESETS.dark;
+  applyColorsToDOM(PRESETS.dark);
+  loadSavedColors();
+  updatePieColors();
+}
+
+// โหลดสีที่บันทึกไว้เมื่อเปิดหน้าเว็บ
+loadSavedColors();
+</script>
+</body>
+</html>
