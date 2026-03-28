@@ -1,4 +1,4 @@
-# ============================================================
+python app.py# ============================================================
 #  ShowMe Thailand — Business Dashboard
 #  ไฟล์หลัก: app.py
 #
@@ -353,12 +353,9 @@ def get_latest():
 # if __name__ == '__main__' = รันเฉพาะเมื่อเรียกไฟล์นี้โดยตรง
 # ไม่รันเมื่อ import จากไฟล์อื่น
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5050))
     print("\n" + "=" * 50)
     print("  ShowMe Thailand — Business Dashboard")
-    print("  เปิด browser: http://localhost:5050")
+    print(f"  รันที่ port: {port}")
     print("=" * 50 + "\n")
-
-    # debug=False  = ปิด debug mode สำหรับการใช้งานจริง
-    # port=5050    = port ที่ใช้
-    # host='0.0.0.0' = รับ connection จากทุก IP
-    app.run(debug=False, port=5050, host='0.0.0.0')
+    app.run(debug=False, port=port, host='0.0.0.0')
