@@ -578,6 +578,33 @@ function updateAnalyzeBtn() {
 function triggerUpload(k){}
 function onFile(input,k){}
 
+// ============================================================
+// CACHE — บันทึก/โหลด/ล้างข้อมูลใน localStorage
+// ============================================================
+const CACHE_KEY      = 'showme_dashboard_data';
+const CACHE_META_KEY = 'showme_dashboard_meta';
+
+function saveToCache(data){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    localStorage.setItem(CACHE_META_KEY, JSON.stringify({savedAt: new Date().toISOString()}));
+  }catch(e){console.warn('บันทึก cache ไม่สำเร็จ:',e);}
+}
+
+function clearCache(){
+  if(!confirm('ต้องการล้างข้อมูลที่บันทึกไว้ใช่ไหมครับ?\nจะกลับไปหน้า Upload ไฟล์'))return;
+  localStorage.removeItem(CACHE_KEY);
+  localStorage.removeItem(CACHE_META_KEY);
+  resetApp();
+}
+
+function reuploadFiles(){ resetApp(); }
+
+function hideCachedBanner(){
+  const b=document.getElementById('cached-banner');
+  if(b) b.style.display='none';
+}
+
 async function runAnalysis(){
   document.getElementById('upload-page').style.display='none';
   document.getElementById('loading').style.display='flex';
