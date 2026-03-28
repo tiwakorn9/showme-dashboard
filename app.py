@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # Supabase Config — อ่านจาก Environment Variables
 # ============================================================
 SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://xjqcwytkhkjbgumyqjlj.supabase.co')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')  # Secret key — ใส่ใน Render env
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')  # service_role key — ใส่ใน Render env
 
 def supabase_save(data, updated_by='admin'):
     """บันทึกผลวิเคราะห์ลง Supabase (upsert row id=1)"""
@@ -33,15 +33,15 @@ def supabase_save(data, updated_by='admin'):
             'apikey': SUPABASE_KEY,
             'Authorization': f'Bearer {SUPABASE_KEY}',
             'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
+            'Prefer': 'resolution=merge-duplicates,return=minimal'
         }
         payload = {
             'id': 1,
             'data': data,
-            'updated_by': updated_by,
-            'updated_at': 'now()'
+            'updated_by': updated_by
         }
-        r = http_requests.post(url, headers=headers, json=payload, timeout=10)
+        r = http_requests.post(url, headers=headers, json=payload, timeout=15)
+        print(f'[Supabase] save status: {r.status_code} — {r.text[:100]}')
         return r.status_code in [200, 201]
     except Exception as e:
         print(f'[Supabase] บันทึกไม่สำเร็จ: {e}')
