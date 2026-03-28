@@ -11,16 +11,41 @@
 
 # === นำเข้า Library ===
 from flask import Flask, render_template, request, jsonify
-# Flask    = framework สำหรับสร้าง Web App ด้วย Python
-# render_template = แสดงไฟล์ HTML
-# request  = รับข้อมูลที่ส่งมาจาก browser
-# jsonify  = แปลงข้อมูล Python เป็น JSON ส่งกลับ browser
-
 import pandas as pd
-# pandas = library จัดการข้อมูลตาราง เหมือน Excel แต่เร็วกว่ามาก
-
 import warnings
-warnings.filterwarnings('ignore')  # ซ่อน warning ที่ไม่จำเป็น
+import os
+import json
+import requests as http_requests  # สำหรับเรียก Supabase REST API
+
+warnings.filterwarnings('ignore')
+
+# ============================================================
+# Supabase Config — อ่านจาก Environment Variables
+# ============================================================
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://xjqcwytkhkjbgumyqjlj.supabase.co')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')  # Secret key — ใส่ใน Render env
+
+def supabase_save(data, updated_by='admin'):
+    """บันทึกผลวิเคราะห์ลง Supabase (upsert row id=1)"""
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/dashboard_cache"
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+        }
+        payload = {
+            'id': 1,
+            'data': data,
+            'updated_by': updated_by,
+            'updated_at': 'now()'
+        }
+        r = http_requests.post(url, headers=headers, json=payload, timeout=10)
+        return r.status_code in [200, 201]
+    except Exception as e:
+        print(f'[Supabase] บันทึกไม่สำเร็จ: {e}')
+        return False
 
 # สร้าง Flask app
 # __name__ = ชื่อไฟล์ปัจจุบัน (app.py)
@@ -280,22 +305,43 @@ def index():
 # Route รับไฟล์และวิเคราะห์
 @app.route('/analyze', methods=['POST'])
 def run_analysis():
-    """
-    รับ POST request พร้อมไฟล์ Excel
-    วิเคราะห์และส่งผลลัพธ์กลับเป็น JSON
-    
-    methods=['POST'] = รับเฉพาะ POST request
-    """
     try:
-        # รับไฟล์จาก form
         files = {key: request.files[key].stream for key in request.files}
-
-        # วิเคราะห์ข้อมูล
         result = analyze_data(files)
 
-        # ส่งกลับเป็น JSON
+        # บันทึกลง Supabase
+        if SUPABASE_KEY:
+            supabase_save(result, updated_by='upload')
+        
         return jsonify({'success': True, 'data': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+
+@app.route('/latest', methods=['GET'])
+def get_latest():
+    """ดึงข้อมูลล่าสุดจาก Supabase ให้ทีมงานทุกคนโหลดได้"""
+    try:
+        if not SUPABASE_KEY:
+            return jsonify({'success': False, 'error': 'ยังไม่ได้ตั้งค่า SUPABASE_KEY'})
+        
+        url = f"{SUPABASE_URL}/rest/v1/dashboard_cache?id=eq.1&select=data,updated_at,updated_by"
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}'
+        }
+        r = http_requests.get(url, headers=headers, timeout=10)
+        rows = r.json()
+        
+        if not rows or rows[0]['data'] == {}:
+            return jsonify({'success': False, 'error': 'ยังไม่มีข้อมูล กรุณา Upload ไฟล์ก่อนครับ'})
+        
+        return jsonify({
+            'success': True,
+            'data': rows[0]['data'],
+            'updated_at': rows[0]['updated_at'],
+            'updated_by': rows[0]['updated_by']
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -307,10 +353,12 @@ def run_analysis():
 # if __name__ == '__main__' = รันเฉพาะเมื่อเรียกไฟล์นี้โดยตรง
 # ไม่รันเมื่อ import จากไฟล์อื่น
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get('PORT', 5050))
     print("\n" + "=" * 50)
     print("  ShowMe Thailand — Business Dashboard")
-    print(f"  เปิด browser: http://localhost:{port}")
+    print("  เปิด browser: http://localhost:5050")
     print("=" * 50 + "\n")
-    app.run(debug=False, port=port, host='0.0.0.0')
+
+    # debug=False  = ปิด debug mode สำหรับการใช้งานจริง
+    # port=5050    = port ที่ใช้
+    # host='0.0.0.0' = รับ connection จากทุก IP
+    app.run(debug=False, port=5050, host='0.0.0.0')
