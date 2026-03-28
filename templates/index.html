@@ -579,31 +579,59 @@ function triggerUpload(k){}
 function onFile(input,k){}
 
 // ============================================================
-// CACHE — บันทึก/โหลด/ล้างข้อมูลใน localStorage
+// SUPABASE CACHE — โหลด/บันทึกข้อมูลผ่าน server
 // ============================================================
-const CACHE_KEY      = 'showme_dashboard_data';
-const CACHE_META_KEY = 'showme_dashboard_meta';
 
-function saveToCache(data){
-  try{
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-    localStorage.setItem(CACHE_META_KEY, JSON.stringify({savedAt: new Date().toISOString()}));
-  }catch(e){console.warn('บันทึก cache ไม่สำเร็จ:',e);}
+async function loadFromSupabase() {
+  try {
+    const res = await fetch('/latest');
+    const json = await res.json();
+    if (json.success && json.data && Object.keys(json.data).length > 0) {
+      return json;
+    }
+    return null;
+  } catch(e) {
+    console.warn('โหลดจาก Supabase ไม่สำเร็จ:', e);
+    return null;
+  }
 }
 
-function clearCache(){
-  if(!confirm('ต้องการล้างข้อมูลที่บันทึกไว้ใช่ไหมครับ?\nจะกลับไปหน้า Upload ไฟล์'))return;
-  localStorage.removeItem(CACHE_KEY);
-  localStorage.removeItem(CACHE_META_KEY);
+function showCachedBanner(updatedAt, updatedBy) {
+  const banner = document.getElementById('cached-banner');
+  if (!banner) return;
+  banner.style.display = 'flex';
+  if (updatedAt) {
+    const d = new Date(updatedAt);
+    const label = d.toLocaleDateString('th-TH', {
+      year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+    const el = document.getElementById('cached-time-label');
+    if (el) el.textContent = `อัปเดตล่าสุด: ${label}`;
+  }
+}
+
+function hideCachedBanner() {
+  const b = document.getElementById('cached-banner');
+  if (b) b.style.display = 'none';
+}
+
+// saveToCache และ clearCache ยังเก็บไว้ใช้ localStorage เป็น fallback
+function saveToCache(data) {
+  try {
+    localStorage.setItem('showme_dashboard_data', JSON.stringify(data));
+    localStorage.setItem('showme_dashboard_meta', JSON.stringify({savedAt: new Date().toISOString()}));
+  } catch(e) {}
+}
+
+function clearCache() {
+  if (!confirm('ต้องการล้างข้อมูลที่บันทึกไว้ใช่ไหมครับ?\nจะกลับไปหน้า Upload ไฟล์')) return;
+  localStorage.removeItem('showme_dashboard_data');
+  localStorage.removeItem('showme_dashboard_meta');
   resetApp();
 }
 
-function reuploadFiles(){ resetApp(); }
-
-function hideCachedBanner(){
-  const b=document.getElementById('cached-banner');
-  if(b) b.style.display='none';
-}
+function reuploadFiles() { resetApp(); }
 
 async function runAnalysis(){
   document.getElementById('upload-page').style.display='none';
@@ -1011,36 +1039,17 @@ function resetColors(){
 // โหลดสีที่บันทึกไว้เมื่อเปิดหน้าเว็บ
 loadSavedColors();
 
-// ============================================================
-// INIT — เริ่มต้นเมื่อหน้าโหลดเสร็จ
-// ============================================================
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   initDropZone();
+  loadSavedColors();
 
-  // โหลด cache อัตโนมัติถ้ามี
-  const CACHE_KEY = 'showme_dashboard_data';
-  const CACHE_META_KEY = 'showme_dashboard_meta';
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (raw) {
-      const cached = JSON.parse(raw);
-      const metaRaw = localStorage.getItem(CACHE_META_KEY);
-      const meta = metaRaw ? JSON.parse(metaRaw) : null;
-      document.getElementById('upload-page').style.display = 'none';
-      buildDashboard(cached);
-      // แสดง banner
-      const banner = document.getElementById('cached-banner');
-      if (banner) {
-        banner.style.display = 'flex';
-        if (meta && meta.savedAt) {
-          const d = new Date(meta.savedAt);
-          const label = d.toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
-          const el = document.getElementById('cached-time-label');
-          if (el) el.textContent = 'บันทึกเมื่อ: ' + label;
-        }
-      }
-    }
-  } catch(e) { console.warn('โหลด cache ไม่สำเร็จ:', e); }
+  // โหลดข้อมูลล่าสุดจาก Supabase อัตโนมัติ
+  const cached = await loadFromSupabase();
+  if (cached) {
+    document.getElementById('upload-page').style.display = 'none';
+    buildDashboard(cached.data);
+    showCachedBanner(cached.updated_at, cached.updated_by);
+  }
 });
 </script>
 </body>
