@@ -6,7 +6,7 @@
 #  pip install -r requirements.txt
 # ============================================================
 
-flask
-pandas
-openpyxl==3.1.5
-gunicorn
+flask      # Web framework สำหรับสร้าง Web App
+pandas     # วิเคราะห์และจัดการข้อมูลตาราง
+openpyxl   # อ่านไฟล์ Excel (.xlsx)
+requests   # เรียก Supabase REST API
