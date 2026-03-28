@@ -20,16 +20,37 @@ body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(
 #upload-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px}
 .logo-big{font-size:32px;font-weight:600;margin-bottom:6px;letter-spacing:-1px}
 .logo-big span{color:var(--green)}
-.subtitle{color:var(--muted);font-size:14px;margin-bottom:40px;text-align:center}
-.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:760px;margin-bottom:28px}
-.upload-card{background:var(--card);border:1.5px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
-.upload-card:hover{border-color:var(--green);background:var(--bg2)}
-.upload-card.has-file{border-style:solid;border-color:var(--green);background:rgba(34,197,94,.06)}
-.upload-card.required::after{content:'จำเป็น';position:absolute;top:8px;right:8px;font-size:9px;background:#451a03;color:var(--amber);padding:2px 6px;border-radius:3px}
-.uc-icon{font-size:24px;margin-bottom:8px}
-.uc-title{font-size:12px;font-weight:500;margin-bottom:3px}
-.uc-sub{font-size:10px;color:var(--muted)}
-.uc-filename{font-size:10px;color:var(--green);margin-top:6px;font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subtitle{color:var(--muted);font-size:14px;margin-bottom:32px;text-align:center}
+
+/* DROP ZONE */
+.drop-zone{width:100%;max-width:760px;background:var(--card);border:2px dashed var(--border);border-radius:16px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--green);background:rgba(34,197,94,.04)}
+.drop-zone.dragover{transform:scale(1.01)}
+.dz-icon{font-size:36px;margin-bottom:10px}
+.dz-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.dz-sub{font-size:12px;color:var(--muted)}
+.dz-input{display:none}
+.dz-click{font-size:11px;color:var(--green);margin-top:8px;text-decoration:underline;cursor:pointer}
+
+/* FILE MATCH LIST */
+.match-list{width:100%;max-width:760px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.match-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;transition:all .2s}
+.match-item.ok{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.04)}
+.match-item.warn{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.03)}
+.match-item.err{border-color:rgba(239,68,68,.3)}
+.mi-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.mi-body{flex:1;min-width:0}
+.mi-filename{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.mi-label{font-size:13px;font-weight:500}
+.mi-status{font-size:10px;margin-top:2px}
+.mi-status.ok{color:var(--green)}
+.mi-status.warn{color:var(--amber)}
+.mi-right{flex-shrink:0}
+.mi-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px;font-family:'IBM Plex Sans Thai',sans-serif;cursor:pointer}
+.mi-select:focus{outline:none;border-color:var(--green)}
+.mi-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 8px;border-radius:4px;transition:all .15s}
+.mi-remove:hover{color:var(--red);background:rgba(239,68,68,.1)}
+
 input[type=file]{display:none}
 .btn-analyze{background:var(--green);color:#000;border:none;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s;width:100%;max-width:760px}
 .btn-analyze:hover{background:#16a34a;transform:translateY(-1px)}
@@ -134,47 +155,22 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <!-- UPLOAD -->
 <div id="upload-page">
   <div class="logo-big">Show<span>Me</span> Thailand</div>
-  <div class="subtitle">Business Intelligence Dashboard<br>วิเคราะห์ข้อมูลจาก BigSeller บนเครื่องของคุณ ไม่ต้อง internet</div>
-  <div class="upload-grid">
-    <div class="upload-card required" onclick="triggerUpload('profit')">
-      <input type="file" id="file-profit" accept=".xlsx,.xls" onchange="onFile(this,'profit')">
-      <div class="uc-icon">💰</div><div class="uc-title">กำไรของคำสั่งซื้อ</div>
-      <div class="uc-sub">กำไรของคำสั่งซื้อ-xxx.xlsx</div>
-      <div class="uc-filename" id="fn-profit">ยังไม่ได้เลือกไฟล์</div>
-    </div>
-    <div class="upload-card required" onclick="triggerUpload('sku')">
-      <input type="file" id="file-sku" accept=".xlsx,.xls" onchange="onFile(this,'sku')">
-      <div class="uc-icon">🏷️</div><div class="uc-title">รายงาน SKU Merchant</div>
-      <div class="uc-sub">รายงาน SKU Merchant-xxx.xlsx</div>
-      <div class="uc-filename" id="fn-sku">ยังไม่ได้เลือกไฟล์</div>
-    </div>
-    <div class="upload-card" onclick="triggerUpload('inv')">
-      <input type="file" id="file-inv" accept=".xlsx,.xls" onchange="onFile(this,'inv')">
-      <div class="uc-icon">📦</div><div class="uc-title">สินค้าคงคลัง</div>
-      <div class="uc-sub">รายงานสินค้าคงคลัง-xxx.xlsx</div>
-      <div class="uc-filename" id="fn-inv">ไม่บังคับ</div>
-    </div>
-    <div class="upload-card" onclick="triggerUpload('orders')">
-      <input type="file" id="file-orders" accept=".xlsx,.xls" onchange="onFile(this,'orders')">
-      <div class="uc-icon">🛒</div><div class="uc-title">รายงานคำสั่งซื้อ</div>
-      <div class="uc-sub">รายงานคำสั่งซื้อ-xxx.xlsx</div>
-      <div class="uc-filename" id="fn-orders">ไม่บังคับ</div>
-    </div>
-    <div class="upload-card" onclick="triggerUpload('store')">
-      <input type="file" id="file-store" accept=".xlsx,.xls" onchange="onFile(this,'store')">
-      <div class="uc-icon">🏪</div><div class="uc-title">รายงานร้านค้า</div>
-      <div class="uc-sub">รายงานร้านค้า-xxx.xlsx</div>
-      <div class="uc-filename" id="fn-store">ไม่บังคับ</div>
-    </div>
-    <div class="upload-card" onclick="triggerUpload('ads')">
-      <input type="file" id="file-ads" accept=".xlsx,.xls" onchange="onFile(this,'ads')">
-      <div class="uc-icon">🎯</div><div class="uc-title">ส่งออกโฆษณา Shopee</div>
-      <div class="uc-sub">ส่งออกโฆษณา Shopee-xxx.xlsx</div>
-      <div class="uc-filename" id="fn-ads">ไม่บังคับ</div>
-    </div>
+  <div class="subtitle">Business Intelligence Dashboard<br>วางไฟล์ Excel จาก BigSeller ได้เลย — โปรแกรมจะจับคู่ให้อัตโนมัติ</div>
+
+  <!-- DROP ZONE -->
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('dz-input').click()">
+    <input type="file" id="dz-input" accept=".xlsx,.xls" multiple onchange="onDropFiles(this.files)">
+    <div class="dz-icon">📂</div>
+    <div class="dz-title">ลากวางไฟล์ Excel ที่นี่</div>
+    <div class="dz-sub">รองรับหลายไฟล์พร้อมกัน · โปรแกรมจะจับคู่ชื่อไฟล์ให้อัตโนมัติ</div>
+    <div class="dz-click">หรือคลิกเพื่อเลือกไฟล์</div>
   </div>
-  <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>กรุณาเลือกไฟล์จำเป็นก่อน</button>
-  <div class="upload-note">ต้องมีอย่างน้อย 2 ไฟล์แรก · ข้อมูลทั้งหมดประมวลผลบนเครื่องของคุณ ไม่มีการส่งข้อมูลออกไปไหน</div>
+
+  <!-- MATCH LIST -->
+  <div class="match-list" id="match-list" style="display:none"></div>
+
+  <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>กรุณาเลือกไฟล์ก่อน</button>
+  <div class="upload-note">ต้องมีอย่างน้อย: กำไรของคำสั่งซื้อ + รายงาน SKU Merchant · ข้อมูลประมวลผลบนเครื่องของคุณ</div>
 </div>
 
 <!-- LOADING -->
@@ -417,27 +413,186 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <script>
 const filesReady = {};
 let charts = {};
+let droppedFiles = []; // เก็บไฟล์ทั้งหมดที่ drop มา
 
-function triggerUpload(k){document.getElementById('file-'+k).click()}
-function onFile(input,k){
-  if(!input.files[0])return;
-  filesReady[k]=input.files[0];
-  document.getElementById('fn-'+k).textContent=input.files[0].name;
-  input.closest('.upload-card').classList.add('has-file');
-  const ok=filesReady['profit']&&filesReady['sku'];
-  const btn=document.getElementById('btn-analyze');
-  btn.disabled=!ok;
-  btn.textContent=ok?'🔍 วิเคราะห์ข้อมูลเลย':'กรุณาเลือกไฟล์จำเป็นก่อน';
+// ============================================================
+// FILE TYPE DEFINITIONS — rules จับคู่ชื่อไฟล์
+// ============================================================
+const FILE_TYPES = [
+  {
+    key: 'profit',
+    icon: '💰',
+    label: 'กำไรของคำสั่งซื้อ',
+    required: true,
+    patterns: ['กำไรของคำสั่งซื้อ', 'กำไรคำสั่งซื้อ', 'order profit', 'profit']
+  },
+  {
+    key: 'sku',
+    icon: '🏷️',
+    label: 'รายงาน SKU Merchant',
+    required: true,
+    patterns: ['รายงาน sku merchant', 'sku merchant', 'รายงานsku', 'sku report']
+  },
+  {
+    key: 'inv',
+    icon: '📦',
+    label: 'สินค้าคงคลัง',
+    required: false,
+    patterns: ['สินค้าคงคลัง', 'inventory', 'คงคลัง']
+  },
+  {
+    key: 'orders',
+    icon: '🛒',
+    label: 'รายงานคำสั่งซื้อ',
+    required: false,
+    patterns: ['รายงานคำสั่งซื้อ', 'รายงาน คำสั่งซื้อ', 'order report', 'orders']
+  },
+  {
+    key: 'store',
+    icon: '🏪',
+    label: 'รายงานร้านค้า',
+    required: false,
+    patterns: ['รายงานร้านค้า', 'รายงาน ร้านค้า', 'store report']
+  },
+  {
+    key: 'ads',
+    icon: '🎯',
+    label: 'ส่งออกโฆษณา Shopee',
+    required: false,
+    patterns: ['ส่งออกโฆษณา', 'โฆษณา shopee', 'ads export', 'shopee ads']
+  }
+];
+
+// ============================================================
+// AUTO-DETECT — จับคู่ชื่อไฟล์อัตโนมัติ
+// ============================================================
+function detectFileType(filename) {
+  const name = filename.toLowerCase().replace(/[-_]/g, ' ');
+  for (const ft of FILE_TYPES) {
+    for (const pattern of ft.patterns) {
+      if (name.includes(pattern.toLowerCase())) {
+        return ft.key;
+      }
+    }
+  }
+  return 'unknown';
 }
+
+// ============================================================
+// DRAG & DROP SETUP
+// ============================================================
+function initDropZone() {
+  const zone = document.getElementById('drop-zone');
+
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    zone.classList.add('dragover');
+  });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.name.match(/\.xlsx?$/i));
+    if (files.length) onDropFiles(files);
+  });
+}
+
+function onDropFiles(filesInput) {
+  const files = filesInput instanceof FileList ? Array.from(filesInput) : filesInput;
+  // เพิ่มเข้า droppedFiles (ถ้าชื่อซ้ำให้แทนที่)
+  files.forEach(f => {
+    const idx = droppedFiles.findIndex(x => x.file.name === f.name);
+    if (idx >= 0) droppedFiles[idx] = { file: f, assignedKey: detectFileType(f.name) };
+    else droppedFiles.push({ file: f, assignedKey: detectFileType(f.name) });
+  });
+  renderMatchList();
+}
+
+// ============================================================
+// RENDER MATCH LIST — แสดงรายการไฟล์พร้อมการจับคู่
+// ============================================================
+function renderMatchList() {
+  const list = document.getElementById('match-list');
+  if (!droppedFiles.length) { list.style.display = 'none'; updateAnalyzeBtn(); return; }
+  list.style.display = 'flex';
+
+  list.innerHTML = droppedFiles.map((item, idx) => {
+    const ft = FILE_TYPES.find(t => t.key === item.assignedKey);
+    const isUnknown = item.assignedKey === 'unknown';
+    const statusClass = isUnknown ? 'warn' : 'ok';
+    const statusText = isUnknown ? '⚠️ ไม่รู้จักไฟล์นี้ — กรุณาเลือกประเภท' : `✅ จับคู่อัตโนมัติ: ${ft.label}`;
+
+    const options = FILE_TYPES.map(t =>
+      `<option value="${t.key}" ${item.assignedKey === t.key ? 'selected' : ''}>${t.icon} ${t.label}${t.required ? ' *' : ''}</option>`
+    ).join('') + `<option value="unknown" ${isUnknown ? 'selected' : ''}>— ไม่ใช้ไฟล์นี้ —</option>`;
+
+    return `
+      <div class="match-item ${statusClass}" id="mi-${idx}">
+        <div class="mi-icon">${ft ? ft.icon : '❓'}</div>
+        <div class="mi-body">
+          <div class="mi-filename">${item.file.name}</div>
+          <div class="mi-label">${ft ? ft.label : 'ไม่รู้จักประเภทไฟล์'}</div>
+          <div class="mi-status ${statusClass}">${statusText}</div>
+        </div>
+        <div class="mi-right" style="display:flex;gap:6px;align-items:center">
+          <select class="mi-select" onchange="changeFileType(${idx}, this.value)">${options}</select>
+          <button class="mi-remove" onclick="removeFile(${idx})" title="ลบไฟล์นี้">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  updateAnalyzeBtn();
+}
+
+function changeFileType(idx, newKey) {
+  droppedFiles[idx].assignedKey = newKey;
+  renderMatchList();
+}
+
+function removeFile(idx) {
+  droppedFiles.splice(idx, 1);
+  renderMatchList();
+}
+
+function updateAnalyzeBtn() {
+  const btn = document.getElementById('btn-analyze');
+  const hasProfit = droppedFiles.some(x => x.assignedKey === 'profit');
+  const hasSku    = droppedFiles.some(x => x.assignedKey === 'sku');
+  const ready     = hasProfit && hasSku;
+
+  btn.disabled = !ready;
+  if (!droppedFiles.length) {
+    btn.textContent = 'กรุณาเลือกไฟล์ก่อน';
+  } else if (!hasProfit && !hasSku) {
+    btn.textContent = 'ต้องการไฟล์: กำไรคำสั่งซื้อ + SKU Merchant';
+  } else if (!hasProfit) {
+    btn.textContent = 'ต้องการไฟล์: กำไรของคำสั่งซื้อ';
+  } else if (!hasSku) {
+    btn.textContent = 'ต้องการไฟล์: รายงาน SKU Merchant';
+  } else {
+    btn.textContent = `🔍 วิเคราะห์ข้อมูลเลย (${droppedFiles.filter(x=>x.assignedKey!=='unknown').length} ไฟล์)`;
+  }
+}
+
+// ฟังก์ชันเดิมที่ไม่ใช้แล้ว (เก็บไว้กัน error)
+function triggerUpload(k){}
+function onFile(input,k){}
+
 async function runAnalysis(){
   document.getElementById('upload-page').style.display='none';
   document.getElementById('loading').style.display='flex';
   const fd=new FormData();
-  for(const[k,f]of Object.entries(filesReady))fd.append(k,f);
+  droppedFiles.forEach(item => {
+    if(item.assignedKey !== 'unknown') fd.append(item.assignedKey, item.file);
+  });
   try{
     const res=await fetch('/analyze',{method:'POST',body:fd});
     const json=await res.json();
-    if(json.success){buildDashboard(json.data)}
+    if(json.success){
+      saveToCache(json.data);
+      hideCachedBanner();
+      buildDashboard(json.data);
+    }
     else{alert('เกิดข้อผิดพลาด: '+json.error);resetApp()}
   }catch(e){alert('ไม่สามารถเชื่อมต่อ server: '+e.message);resetApp()}
 }
@@ -445,6 +600,10 @@ function resetApp(){
   document.getElementById('dashboard-page').style.display='none';
   document.getElementById('loading').style.display='none';
   document.getElementById('upload-page').style.display='flex';
+  droppedFiles=[];
+  document.getElementById('match-list').style.display='none';
+  document.getElementById('match-list').innerHTML='';
+  updateAnalyzeBtn();
   Object.values(charts).forEach(c=>c.destroy());charts={};
 }
 function showPage(id,el){
@@ -824,6 +983,38 @@ function resetColors(){
 
 // โหลดสีที่บันทึกไว้เมื่อเปิดหน้าเว็บ
 loadSavedColors();
+
+// ============================================================
+// INIT — เริ่มต้นเมื่อหน้าโหลดเสร็จ
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initDropZone();
+
+  // โหลด cache อัตโนมัติถ้ามี
+  const CACHE_KEY = 'showme_dashboard_data';
+  const CACHE_META_KEY = 'showme_dashboard_meta';
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const cached = JSON.parse(raw);
+      const metaRaw = localStorage.getItem(CACHE_META_KEY);
+      const meta = metaRaw ? JSON.parse(metaRaw) : null;
+      document.getElementById('upload-page').style.display = 'none';
+      buildDashboard(cached);
+      // แสดง banner
+      const banner = document.getElementById('cached-banner');
+      if (banner) {
+        banner.style.display = 'flex';
+        if (meta && meta.savedAt) {
+          const d = new Date(meta.savedAt);
+          const label = d.toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+          const el = document.getElementById('cached-time-label');
+          if (el) el.textContent = 'บันทึกเมื่อ: ' + label;
+        }
+      }
+    }
+  } catch(e) { console.warn('โหลด cache ไม่สำเร็จ:', e); }
+});
 </script>
 </body>
 </html>
