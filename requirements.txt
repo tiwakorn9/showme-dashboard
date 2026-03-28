@@ -1,12 +1,5 @@
-# ============================================================
-#  requirements.txt — รายการ library ที่ต้องติดตั้ง
-#
-#  วิธีติดตั้ง:
-#  เปิด Terminal แล้วพิมพ์:
-#  pip install -r requirements.txt
-# ============================================================
-
 flask      # Web framework สำหรับสร้าง Web App
 pandas     # วิเคราะห์และจัดการข้อมูลตาราง
 openpyxl   # อ่านไฟล์ Excel (.xlsx)
 requests   # เรียก Supabase REST API
+gunicorn   # Production server สำหรับ Render.com
